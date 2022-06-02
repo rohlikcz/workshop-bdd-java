@@ -1,0 +1,13 @@
+version: "3"
+services:
+  db:
+    container_name: bdd_workshop_db
+    image: mysql:8
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bdd
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - '4306:3306'
