@@ -1,9 +1,7 @@
 package group.rohlik.acceptance.steps;
 
 import group.rohlik.entity.Cart;
-import group.rohlik.entity.CartLine;
 import group.rohlik.entity.CartRepository;
-import group.rohlik.entity.Discount;
 import io.cucumber.gherkin.internal.com.eclipsesource.json.JsonObject;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
@@ -65,53 +63,36 @@ public class CartSteps {
     @Then("the cart's total cost should be {float} euro(s)")
     public void cartTotalCost(float amount) {
         Cart cart = currentCart();
-        double totalProducts = cart
-                .getLines()
-                .stream()
-                .mapToDouble(currentCartLine -> currentCartLine.getQuantity() * currentCartLine.getProduct().getPrice())
-                .sum();
-        double totalDiscounts = cart.getDiscounts().stream().mapToDouble(Discount::getAmount).sum();
-        double totalPrice = totalProducts - totalDiscounts;
+        double totalPrice = cart.totalPrice();
 
-        Assertions.assertEquals(Math.round(totalPrice * 100f) / 100f, amount);
+        Assertions.assertEquals(amount, (float) totalPrice);
     }
 
     @Then("there should be {int} unit(s) of product {string} in my cart")
     public void thereShouldBeProductUnitsInMyCart(int quantity, String sku) {
         Cart cart = currentCart();
-        CartLine cartLine = cart.getLines()
-                .stream()
-                .filter(currentCartLine -> currentCartLine.getProduct().getSku().equals(sku))
-                .findFirst()
-                .orElseThrow();
-        Assertions.assertEquals(quantity, cartLine.getQuantity());
+
+        Assertions.assertEquals(quantity, cart.quantityOfProduct(sku));
     }
 
     @Then("there shouldn't be product {string} in my cart")
     public void thereShouldNotBeProductInCart(String sku) {
         Cart cart = currentCart();
-        CartLine cartLine = cart.getLines()
-                .stream()
-                .filter(currentCartLine -> currentCartLine.getProduct().getSku().equals(sku))
-                .findFirst()
-                .orElse(null);
-        Assertions.assertNull(cartLine, String.format("Product %s should not be present", sku));
+
+        Assertions.assertFalse(cart.hasProduct(sku), String.format("Product %s should not be present", sku));
     }
 
     @Then("there should be discount {long} in my cart")
     public void thereShouldBeDiscountInCart(long discountId) {
         Cart cart = currentCart();
-        Discount discount = cart.getDiscounts()
-                .stream()
-                .filter(currentDiscount -> currentDiscount.getId() == discountId)
-                .findFirst()
-                .orElse(null);
-        Assertions.assertNotNull(discount, String.format("Discount %s should be present", discountId));
+
+        Assertions.assertTrue(cart.hasDiscount(discountId), String.format("Discount %s should be present", discountId));
     }
 
     @Then("there shouldn't be discounts in my cart")
     public void thereShouldNotBeDiscountsInCart() {
         Cart cart = currentCart();
+
         Assertions.assertEquals(0, cart.getDiscounts().size());
     }
 
