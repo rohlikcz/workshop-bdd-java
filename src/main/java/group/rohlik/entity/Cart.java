@@ -80,11 +80,13 @@ public class Cart {
                 .sum();
     }
 
-    public void recalculateDiscounts(List<Discount> discounts) {
-        this.discounts.clear();
+    public void recalculateAutomaticDiscounts(List<Discount> discounts) {
+        List<Discount> toBeDeleted = this.discounts.stream().filter(Discount::isAutomatic).toList();
+        toBeDeleted.forEach(this.discounts::remove);
         double price = totalLinesPrice();
         discounts
                 .stream()
+                .filter(Discount::isAutomatic)
                 .filter(discount -> discount.getMinPrice() < price)
                 .forEach(this.discounts::add);
     }
@@ -108,6 +110,12 @@ public class Cart {
                 .anyMatch(line -> line.getId() == id);
     }
 
+    public boolean hasDiscount(String name) {
+        return discounts
+                .stream()
+                .anyMatch(line -> line.getName().equals(name));
+    }
+
     public Integer quantityOfProduct(String sku) {
         return lines
                 .stream()
@@ -115,5 +123,11 @@ public class Cart {
                 .findFirst()
                 .map(CartLine::getQuantity)
                 .orElse(0);
+    }
+    public void applyDiscount(Discount discount) {
+        Assert.isTrue(!discount.isAutomatic(), "Discount can not be of type automatic");
+        Assert.isTrue(!discounts.contains(discount), "Discount already applied");
+
+        discounts.add(discount);
     }
 }

@@ -89,11 +89,33 @@ public class CartSteps {
         Assertions.assertTrue(cart.hasDiscount(discountId), String.format("Discount %s should be present", discountId));
     }
 
+    @Then("there should be discount {string} in my cart")
+    public void thereShouldBeDiscountByNameInCart(String name) {
+        Cart cart = currentCart();
+
+        Assertions.assertTrue(cart.hasDiscount(name), String.format("Discount %s should be present", name));
+    }
+
     @Then("there shouldn't be discounts in my cart")
     public void thereShouldNotBeDiscountsInCart() {
         Cart cart = currentCart();
 
         Assertions.assertEquals(0, cart.getDiscounts().size());
+    }
+
+    @When("I apply {string} discount to my cart")
+    public void iApplyDiscountToMyCart(String code) {
+        JsonObject body = new JsonObject();
+        body.add("code", code);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        template.exchange(
+                String.format("/carts/%d/discounts", currentCartId),
+                HttpMethod.POST,
+                new HttpEntity<>(body.toString(), headers),
+                String.class
+        );
     }
 
     private Cart currentCart() {

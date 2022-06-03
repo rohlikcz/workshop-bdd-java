@@ -2,9 +2,8 @@ package group.rohlik.application;
 
 import group.rohlik.entity.Cart;
 import group.rohlik.entity.CartRepository;
+import group.rohlik.entity.Discount;
 import group.rohlik.entity.DiscountRepository;
-import group.rohlik.entity.Product;
-import group.rohlik.entity.ProductRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,17 +11,15 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 @Service
 @Transactional
-public class CartLineAdder {
+public class CartDiscountAdder {
 
     private final CartRepository cartRepository;
-    private final ProductRepository productRepository;
     private final DiscountRepository discountRepository;
 
-    public void add(long cartId, String sku, int quantity) {
+    public void add(long cartId, String code) {
         Cart cart = cartRepository.findById(cartId).orElseThrow();
-        Product product = productRepository.findById(sku).orElseThrow();
-        cart.addLine(product, quantity);
-        cart.recalculateAutomaticDiscounts(discountRepository.findAllAutomatics());
+        Discount discount = discountRepository.findByCode(code).orElseThrow();
+        cart.applyDiscount(discount);
 
         cartRepository.save(cart);
     }
