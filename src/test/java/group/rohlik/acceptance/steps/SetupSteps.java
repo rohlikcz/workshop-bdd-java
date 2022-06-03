@@ -10,6 +10,7 @@ import java.util.List;
 
 @AllArgsConstructor
 public class SetupSteps {
+
     @PersistenceContext
     private EntityManager em;
 
@@ -27,9 +28,5 @@ public class SetupSteps {
 
     private void executeUpdate(String sql) {
         em.createNativeQuery(sql).executeUpdate();
-    }
-
-    public static void notImplemented() {
-        throw new RuntimeException("Step method not implemented");
     }
 }
