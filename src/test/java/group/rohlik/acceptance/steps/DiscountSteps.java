@@ -11,14 +11,14 @@ public class DiscountSteps {
 
     private final DiscountRepository discountRepository;
 
-    @Given("there is a cart discount {string} for {float} euros with a minimum total price of {float} euros")
+    @Given("there is a cart discount {string} for {float} % with a minimum total price of {float} euros")
     @Transactional
     public void thereIsACartDiscountWithAMinimumTotalPrice(String name, float amount, float minPrice) {
         Discount discount = Discount.minimumPriceDiscount(name, amount, minPrice);
         discountRepository.save(discount);
     }
 
-    @Given("there is a cart discount {string} for {float} euros with code {string}")
+    @Given("there is a cart discount {string} for {float} % with code {string}")
     @Transactional
     public void thereIsACartDiscountWithCode(String name, float amount, String code) {
         Discount discount = Discount.codeDiscount(name, amount, code);

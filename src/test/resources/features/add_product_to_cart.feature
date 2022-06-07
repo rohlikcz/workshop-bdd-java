@@ -8,7 +8,7 @@ Feature: Add product to cart
       | sku | name     | price |
       | 001 | potatoes | 2.5   |
       | 002 | water    | 0.95  |
-    And there is a cart discount "Amazing discount" for 1 euros with a minimum total price of 6 euros
+    And there is a cart discount "Amazing discount" for 10 % with a minimum total price of 6 euros
     And I have a cart
 
   Scenario: Add product
@@ -34,7 +34,7 @@ Feature: Add product to cart
     Then there should be 2 units of product "001" in my cart
     And there should be 2 units of product "002" in my cart
     And there should be discount 1 in my cart
-    And the cart's total cost should be 5.90 euros
+    And the cart's total cost should be 6.21 euros
 
   Scenario: Recalculate discount when remove products
     Given I add 2 units of product "001" to my cart

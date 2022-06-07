@@ -24,7 +24,7 @@ public class Discount {
     @Column(nullable = false)
     private float minPrice;
     @Column(nullable = false)
-    private float amount;
+    private float percentage;
     @Column
     private String code;
     @Column
@@ -35,10 +35,10 @@ public class Discount {
         CODE, MIN_PRICE
     }
 
-    public static Discount minimumPriceDiscount(String name, float amount, float minPrice) {
+    public static Discount minimumPriceDiscount(String name, float percentage, float minPrice) {
         Discount discount = new Discount();
         discount.name = name;
-        discount.amount = amount;
+        discount.percentage = percentage;
         discount.minPrice = minPrice;
         discount.code = null;
         discount.type = DiscountType.MIN_PRICE;
@@ -46,10 +46,10 @@ public class Discount {
         return discount;
     }
 
-    public static Discount codeDiscount(String name, float amount, String code) {
+    public static Discount codeDiscount(String name, float percentage, String code) {
         Discount discount = new Discount();
         discount.name = name;
-        discount.amount = amount;
+        discount.percentage = percentage;
         discount.minPrice = 0;
         discount.code = code;
         discount.type = DiscountType.CODE;

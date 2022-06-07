@@ -73,10 +73,10 @@ public class Cart {
                 .sum();
     }
 
-    private double totalDiscountsPrice() {
+    private double totalDiscountsPercentage() {
         return discounts
                 .stream()
-                .mapToDouble(Discount::getAmount)
+                .mapToDouble(Discount::getPercentage)
                 .sum();
     }
 
@@ -92,10 +92,13 @@ public class Cart {
     }
 
     public double totalPrice() {
-        return BigDecimal
-                .valueOf(totalLinesPrice() - totalDiscountsPrice())
-                .setScale(2, RoundingMode.CEILING)
-                .doubleValue();
+        return Math.max(
+                0,
+                BigDecimal
+                        .valueOf(totalLinesPrice() - (totalLinesPrice() * totalDiscountsPercentage() / 100))
+                        .setScale(2, RoundingMode.CEILING)
+                        .doubleValue()
+        );
     }
 
     public boolean hasProduct(String sku) {
@@ -124,6 +127,7 @@ public class Cart {
                 .map(CartLine::getQuantity)
                 .orElse(0);
     }
+
     public void applyDiscount(Discount discount) {
         Assert.isTrue(!discount.isAutomatic(), "Discount can not be of type automatic");
         Assert.isTrue(!discounts.contains(discount), "Discount already applied");
