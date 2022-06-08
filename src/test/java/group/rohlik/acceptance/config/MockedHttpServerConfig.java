@@ -1,9 +1,9 @@
 package group.rohlik.acceptance.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
@@ -12,7 +12,7 @@ public class MockedHttpServerConfig {
     private final RestTemplate restTemplate;
 
     @Bean
-    public MockedHttpRequests mockServerRequests(ObjectMapper mapper) {
-        return new MockedHttpRequests(mapper);
+    public MockRestServiceServer mockRestServiceServer() {
+        return MockRestServiceServer.bindTo(restTemplate).build();
     }
 }

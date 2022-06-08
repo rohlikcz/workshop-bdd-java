@@ -1,6 +1,7 @@
 package group.rohlik.acceptance.steps;
 
-import group.rohlik.acceptance.config.MockedHttpRequests;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import group.rohlik.entity.Cart;
 import group.rohlik.entity.CartRepository;
 import io.cucumber.gherkin.internal.com.eclipsesource.json.JsonObject;
@@ -16,28 +17,36 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.client.MockRestServiceServer;
 
-import java.io.IOException;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 public class CartSteps {
 
     private final CartRepository cartRepository;
     private final TestRestTemplate template;
-    private final MockedHttpRequests mockRequests;
+    private final MockRestServiceServer mockRestServiceServer;
+    private final ObjectMapper objectMapper;
     private Long currentCartId;
 
     @Autowired
     public CartSteps(
             CartRepository cartRepository,
             TestRestTemplate template,
-            MockedHttpRequests mockRequests
+            MockRestServiceServer mockRestServiceServer,
+            ObjectMapper objectMapper
     ) {
         this.cartRepository = cartRepository;
         this.template = template;
-        this.mockRequests = mockRequests;
+        this.mockRestServiceServer = mockRestServiceServer;
+        this.objectMapper = objectMapper;
     }
 
     @Before
@@ -50,6 +59,26 @@ public class CartSteps {
         Cart cart = new Cart();
         cartRepository.save(cart);
         currentCartId = cart.getId();
+    }
+
+    @Given("the warehouse expects to receive an order request to be delivered at {string}")
+    public void warehouseExpectsReceiveOrderRequestToBeDelivered(String deliveryAt) throws JsonProcessingException {
+        Cart cart = currentCart();
+        CartPayload payload = new CartPayload(
+                cart.getId(),
+                deliveryAt,
+                cart.getLines()
+                        .stream()
+                        .map(cartLine -> new ProductPayload(cartLine.getProduct().getSku(), cartLine.getQuantity()))
+                        .toList()
+        );
+
+        mockRestServiceServer
+                .expect(method(HttpMethod.POST))
+                .andExpect(header("Content-Type", MediaType.APPLICATION_JSON.toString()))
+                .andExpect(requestTo("https://internal-warehouse-microservice.rohlik/orders"))
+                .andExpect(content().json(objectMapper.writeValueAsString(payload)))
+                .andRespond(withStatus(HttpStatus.CREATED));
     }
 
     @When("I add {int} unit(s) of product {string} to my cart")
@@ -146,8 +175,6 @@ public class CartSteps {
 
     @When("I proceed to checkout my cart to be delivered at {string}")
     public void iProceedToCheckoutCartToBeDelivered(String deliveredAt) {
-        mockRequests.addResponse(HttpStatus.CREATED);
-
         JsonObject body = new JsonObject();
         body.add("delivery_at", deliveredAt);
         HttpHeaders headers = new HttpHeaders();
@@ -159,23 +186,6 @@ public class CartSteps {
                 new HttpEntity<>(body.toString(), headers),
                 String.class
         );
-    }
-
-    @Then("the warehouse has received my order request")
-    public void warehouseReceivedOrderRequest() throws IOException {
-        Cart cart = currentCart();
-        CartPayload payload = new CartPayload(
-                cart.getId(),
-                cart.getDeliveryAt().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-                cart.getLines()
-                        .stream()
-                        .map(cartLine -> new ProductPayload(cartLine.getProduct().getSku(), cartLine.getQuantity()))
-                        .toList()
-        );
-        mockRequests.assertMethod(0, HttpMethod.POST);
-        mockRequests.assertUrl(0, "https://internal-warehouse-microservice.rohlik/orders");
-        mockRequests.assertHeader(0, "Content-Type", MediaType.APPLICATION_JSON.toString());
-        mockRequests.assertBody(0, payload);
     }
 
     private Cart currentCart() {

@@ -13,7 +13,7 @@ Feature: Cart checkout
     And I add 1 unit of product "002" to my cart
 
   Scenario: Cart checkout
+    Given the warehouse expects to receive an order request to be delivered at "2022-06-20T14:00:00+02:00"
     When I proceed to checkout my cart to be delivered at "2022-06-20T14:00:00+02:00"
     Then there should be a status "CHECK_OUT" in my cart
     And there should be a delivery date "2022-06-20T14:00:00+02:00" in my cart
-    And the warehouse has received my order request
