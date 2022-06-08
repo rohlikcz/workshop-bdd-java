@@ -1,5 +1,6 @@
 package group.rohlik.acceptance.steps;
 
+import group.rohlik.acceptance.config.MockedHttpRequests;
 import group.rohlik.entity.Cart;
 import group.rohlik.entity.CartRepository;
 import io.cucumber.gherkin.internal.com.eclipsesource.json.JsonObject;
@@ -13,18 +14,30 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+
+import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class CartSteps {
 
     private final CartRepository cartRepository;
     private final TestRestTemplate template;
+    private final MockedHttpRequests mockRequests;
     private Long currentCartId;
 
     @Autowired
-    public CartSteps(CartRepository cartRepository, TestRestTemplate template) {
+    public CartSteps(
+            CartRepository cartRepository,
+            TestRestTemplate template,
+            MockedHttpRequests mockRequests
+    ) {
         this.cartRepository = cartRepository;
         this.template = template;
+        this.mockRequests = mockRequests;
     }
 
     @Before
@@ -103,6 +116,19 @@ public class CartSteps {
         Assertions.assertEquals(0, cart.getDiscounts().size());
     }
 
+    @Then("there should be a status {string} in my cart")
+    public void thereShouldBeStatusInCart(String status) {
+        Cart cart = currentCart();
+        Assertions.assertEquals(Cart.CartStatus.valueOf(status), cart.getStatus());
+    }
+
+    @Then("there should be a delivery date {string} in my cart")
+    public void thereShouldBeDeliveryDateInCart(String deliveryDate) {
+        Cart cart = currentCart();
+        ZonedDateTime deliveryAt = ZonedDateTime.parse(deliveryDate);
+        Assertions.assertEquals(deliveryAt.toInstant(), cart.getDeliveryAt().toInstant());
+    }
+
     @When("I apply {string} discount to my cart")
     public void iApplyDiscountToMyCart(String code) {
         JsonObject body = new JsonObject();
@@ -118,7 +144,45 @@ public class CartSteps {
         );
     }
 
+    @When("I proceed to checkout my cart to be delivered at {string}")
+    public void iProceedToCheckoutCartToBeDelivered(String deliveredAt) {
+        mockRequests.addResponse(HttpStatus.CREATED);
+
+        JsonObject body = new JsonObject();
+        body.add("delivery_at", deliveredAt);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        template.exchange(
+                String.format("/carts/%d/checkout", currentCartId),
+                HttpMethod.POST,
+                new HttpEntity<>(body.toString(), headers),
+                String.class
+        );
+    }
+
+    @Then("the warehouse has received my order request")
+    public void warehouseReceivedOrderRequest() throws IOException {
+        Cart cart = currentCart();
+        CartPayload payload = new CartPayload(
+                cart.getId(),
+                cart.getDeliveryAt().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                cart.getLines()
+                        .stream()
+                        .map(cartLine -> new ProductPayload(cartLine.getProduct().getSku(), cartLine.getQuantity()))
+                        .toList()
+        );
+        mockRequests.assertMethod(0, HttpMethod.POST);
+        mockRequests.assertUrl(0, "https://internal-warehouse-microservice.rohlik/orders");
+        mockRequests.assertHeader(0, "Content-Type", MediaType.APPLICATION_JSON.toString());
+        mockRequests.assertBody(0, payload);
+    }
+
     private Cart currentCart() {
         return cartRepository.findById(currentCartId).orElseThrow();
     }
+
+    private record CartPayload(Long cartId, String deliveryAt, List<ProductPayload> products) {}
+
+    private record ProductPayload(String sku, int quantity) {}
 }

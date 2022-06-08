@@ -6,7 +6,10 @@ import lombok.NoArgsConstructor;
 import org.springframework.util.Assert;
 
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -14,8 +17,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -28,8 +33,14 @@ public class Cart {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private CartStatus status = CartStatus.NEW;
+    @Column
+    private ZonedDateTime deliveryAt;
     @OneToMany(mappedBy = "cart", orphanRemoval = true, cascade = CascadeType.ALL)
     @EqualsAndHashCode.Exclude
+    @OrderBy
     private Set<CartLine> lines = new HashSet<>();
     @ManyToMany(cascade = CascadeType.ALL)
     @JoinTable(
@@ -38,6 +49,7 @@ public class Cart {
             inverseJoinColumns = @JoinColumn(name = "discount_id")
     )
     @EqualsAndHashCode.Exclude
+    @OrderBy
     private Set<Discount> discounts = new HashSet<>();
 
     public void addLine(Product product, int quantity) {
@@ -133,5 +145,17 @@ public class Cart {
         Assert.isTrue(!discounts.contains(discount), "Discount already applied");
 
         discounts.add(discount);
+    }
+
+    public void checkout(ZonedDateTime deliveryAt) {
+        if (!status.equals(CartStatus.NEW)) {
+            throw new RuntimeException(String.format("Cart %d can´t execute checkout", id));
+        }
+        this.status = CartStatus.CHECK_OUT;
+        this.deliveryAt = deliveryAt;
+    }
+
+    public enum CartStatus {
+        NEW, CHECK_OUT
     }
 }

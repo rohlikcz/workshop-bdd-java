@@ -1,6 +1,7 @@
 package group.rohlik.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import group.rohlik.application.CartCheckoutExecutor;
 import group.rohlik.application.CartDiscountAdder;
 import group.rohlik.application.CartLineAdder;
 import lombok.AllArgsConstructor;
@@ -11,12 +12,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.ZonedDateTime;
+
 @RestController
 @AllArgsConstructor
 public class CartController {
 
     private final CartLineAdder cartLineAdder;
     private final CartDiscountAdder cartDiscountAdder;
+    private final CartCheckoutExecutor cartCheckoutExecutor;
 
     @PostMapping(path = "/carts/{id}/lines", consumes = "application/json", produces = "application/json")
     public ResponseEntity addLine(@PathVariable long id, @RequestBody JsonNode payload) {
@@ -33,6 +37,14 @@ public class CartController {
         String code = payload.get("code").textValue();
 
         cartDiscountAdder.add(id, code);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping(path = "/carts/{id}/checkout", consumes = "application/json", produces = "application/json")
+    public ResponseEntity checkout(@PathVariable long id, @RequestBody JsonNode payload) {
+        ZonedDateTime deliveryAt= ZonedDateTime.parse(payload.get("delivery_at").textValue());
+        cartCheckoutExecutor.checkout(id, deliveryAt);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
