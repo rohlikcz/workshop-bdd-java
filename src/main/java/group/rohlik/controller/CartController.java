@@ -1,11 +1,13 @@
 package group.rohlik.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import group.rohlik.application.CartFetcher;
 import group.rohlik.application.CartDiscountAdder;
 import group.rohlik.application.CartLineAdder;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +19,7 @@ public class CartController {
 
     private final CartLineAdder cartLineAdder;
     private final CartDiscountAdder cartDiscountAdder;
+    private final CartFetcher cartFetcher;
 
     @PostMapping(path = "/carts/{id}/lines", consumes = "application/json", produces = "application/json")
     public ResponseEntity addLine(@PathVariable long id, @RequestBody JsonNode payload) {
@@ -35,5 +38,12 @@ public class CartController {
         cartDiscountAdder.add(id, code);
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping(path = "/carts/{id}", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<Object> recoverCartDetail(@PathVariable long id) {
+        var cartDetail = cartFetcher.fetch(id);
+
+        return new ResponseEntity<>(cartDetail, HttpStatus.OK);
     }
 }
