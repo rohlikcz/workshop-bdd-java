@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DiscountSteps {
     private final DiscountRepository discountRepository;
 
-    @Given("there is a cart discount {string} for {double} euros with code {string}")
+    @Given("there is a cart discount {string} for {double} % with code {string}")
     @Transactional
     public void thereIsACartDiscountWithCode(String name, double value, String code) {
         Discount discount = Discount.create(name, code, value);

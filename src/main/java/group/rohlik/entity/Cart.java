@@ -74,7 +74,7 @@ public class Cart {
                 .sum();
     }
 
-    private double totalDiscountsPrice() {
+    private double totalDiscountsPercentage() {
         return discounts
                 .stream()
                 .mapToDouble(Discount::getValue)
@@ -82,10 +82,11 @@ public class Cart {
     }
 
     public double totalPrice() {
+        double totalLinesPrice = totalLinesPrice();
         return Math.max(
                 0,
                 BigDecimal
-                        .valueOf(totalLinesPrice() - totalDiscountsPrice())
+                        .valueOf(totalLinesPrice - (totalLinesPrice * totalDiscountsPercentage() / 100))
                         .setScale(2, RoundingMode.CEILING)
                         .doubleValue()
         );
