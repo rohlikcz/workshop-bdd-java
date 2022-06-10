@@ -64,41 +64,23 @@ public class CartSteps {
     @Then("the cart's total cost should be {double} euro(s)")
     public void cartTotalCost(double amount) {
         Cart cart = currentCart();
-        double totalProducts = cart
-                .getLines()
-                .stream()
-                .mapToDouble(currentCartLine -> currentCartLine.getQuantity() * currentCartLine.getProduct().getPrice())
-                .sum();
-        double totalDiscounts = cart.getDiscounts().stream().mapToDouble(Discount::getValue).sum();
-        double totalPrice = totalProducts - totalDiscounts;
+        double totalPrice = cart.totalPrice();
 
-        Assertions.assertEquals(amount, BigDecimal.valueOf(totalPrice).setScale(2, RoundingMode.CEILING).doubleValue());
-
+        Assertions.assertEquals(amount, totalPrice);
     }
 
     @Then("there should be {int} unit(s) of product {string} in my cart")
     public void thereShouldBeProductUnitsInMyCart(int quantity, String sku) {
         Cart cart = currentCart();
-        CartLine cartLine = cart.getLines()
-                .stream()
-                .filter(currentCartLine -> currentCartLine.getProduct().getSku().equals(sku))
-                .findFirst()
-                .orElse(null);
 
-        Assertions.assertNotNull(cartLine, String.format("Product %s not found", sku));
-        Assertions.assertEquals(quantity, cartLine.getQuantity());
+        Assertions.assertEquals(quantity, cart.quantityOfProduct(sku));
     }
 
     @Then("there shouldn't be product {string} in my cart")
     public void thereShouldNotBeProductInCart(String sku) {
         Cart cart = currentCart();
-        CartLine cartLine = cart.getLines()
-                .stream()
-                .filter(currentCartLine -> currentCartLine.getProduct().getSku().equals(sku))
-                .findFirst()
-                .orElse(null);
 
-        Assertions.assertNull(cartLine, String.format("Product %s should not be present", sku));
+        Assertions.assertTrue(cart.quantityOfProduct(sku) == 0, String.format("Product %s should not be present", sku));
     }
 
     private Cart currentCart() {
