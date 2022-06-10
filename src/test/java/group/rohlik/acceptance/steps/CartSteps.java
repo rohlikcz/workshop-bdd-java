@@ -3,6 +3,7 @@ package group.rohlik.acceptance.steps;
 import group.rohlik.entity.Cart;
 import group.rohlik.entity.CartLine;
 import group.rohlik.entity.CartRepository;
+import group.rohlik.entity.Discount;
 import io.cucumber.gherkin.internal.com.eclipsesource.json.JsonObject;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
@@ -15,6 +16,9 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 
 @RequiredArgsConstructor
@@ -54,17 +58,35 @@ public class CartSteps {
 
     @When("I remove product {string} of my cart")
     public void removeProductOfMyCart(String sku) {
-        SetupSteps.notImplemented();
+        addProductUnitsToMyCart(0, sku);
     }
 
     @Then("the cart's total cost should be {double} euro(s)")
     public void cartTotalCost(double amount) {
-        SetupSteps.notImplemented();
+        Cart cart = currentCart();
+        double totalProducts = cart
+                .getLines()
+                .stream()
+                .mapToDouble(currentCartLine -> currentCartLine.getQuantity() * currentCartLine.getProduct().getPrice())
+                .sum();
+        double totalDiscounts = cart.getDiscounts().stream().mapToDouble(Discount::getValue).sum();
+        double totalPrice = totalProducts - totalDiscounts;
+
+        Assertions.assertEquals(amount, BigDecimal.valueOf(totalPrice).setScale(2, RoundingMode.CEILING).doubleValue());
+
     }
 
     @Then("there should be {int} unit(s) of product {string} in my cart")
     public void thereShouldBeProductUnitsInMyCart(int quantity, String sku) {
-        SetupSteps.notImplemented();
+        Cart cart = currentCart();
+        CartLine cartLine = cart.getLines()
+                .stream()
+                .filter(currentCartLine -> currentCartLine.getProduct().getSku().equals(sku))
+                .findFirst()
+                .orElse(null);
+
+        Assertions.assertNotNull(cartLine, String.format("Product %s not found", sku));
+        Assertions.assertEquals(quantity, cartLine.getQuantity());
     }
 
     @Then("there shouldn't be product {string} in my cart")
