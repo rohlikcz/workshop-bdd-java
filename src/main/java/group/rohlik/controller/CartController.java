@@ -1,7 +1,12 @@
 package group.rohlik.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import group.rohlik.entity.*;
+import group.rohlik.application.CartDiscountAdder;
+import group.rohlik.entity.Cart;
+import group.rohlik.entity.CartLine;
+import group.rohlik.entity.CartRepository;
+import group.rohlik.entity.Product;
+import group.rohlik.entity.ProductRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,17 +15,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Comparator;
-import java.util.List;
-
 @RestController
 @AllArgsConstructor
 public class CartController {
+
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
-    private final DiscountRepository discountRepository;
+    private final CartDiscountAdder cartDiscountAdder;
 
     @PostMapping(path = "/carts/{id}/lines", consumes = "application/json", produces = "application/json")
     public ResponseEntity addLine(@PathVariable long id, @RequestBody JsonNode payload) {
@@ -55,19 +56,16 @@ public class CartController {
             }
         }
 
-        double totalPrice = cart
-                .getLines()
-                .stream()
-                .mapToDouble(currentCartLine -> currentCartLine.getQuantity() * currentCartLine.getProduct().getPrice())
-                .sum();
-        List<Discount> discounts = discountRepository.findAll();
-        cart.getDiscounts().clear();
-        discounts.forEach(discount -> {
-            if (totalPrice >= discount.getMinPrice()) {
-                cart.getDiscounts().add(discount);
-            }
-        });
         cartRepository.save(cart);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping(path = "/carts/{id}/discounts", consumes = "application/json", produces = "application/json")
+    public ResponseEntity addDiscount(@PathVariable long id, @RequestBody JsonNode payload) {
+        String code = payload.get("code").textValue();
+
+        cartDiscountAdder.add(id, code);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
