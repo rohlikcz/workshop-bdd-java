@@ -1,9 +1,7 @@
 package group.rohlik.acceptance.steps;
 
 import group.rohlik.entity.Cart;
-import group.rohlik.entity.CartLine;
 import group.rohlik.entity.CartRepository;
-import group.rohlik.entity.Discount;
 import io.cucumber.gherkin.internal.com.eclipsesource.json.JsonObject;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
@@ -16,9 +14,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 
 @RequiredArgsConstructor
@@ -81,6 +76,35 @@ public class CartSteps {
         Cart cart = currentCart();
 
         Assertions.assertTrue(cart.quantityOfProduct(sku) == 0, String.format("Product %s should not be present", sku));
+    }
+
+    @Then("there should be discount {string} in my cart")
+    public void thereShouldBeDiscountInCart(String name) {
+        Cart cart = currentCart();
+
+        Assertions.assertTrue(cart.hasDiscount(name), String.format("Discount %s should be present", name));
+    }
+
+    @Then("there shouldn't be discounts in my cart")
+    public void thereShouldNotBeDiscountsInCart() {
+        Cart cart = currentCart();
+
+        Assertions.assertEquals(0, cart.getDiscounts().size());
+    }
+
+    @When("I apply {string} discount to my cart")
+    public void iApplyDiscountToMyCart(String code) {
+        JsonObject body = new JsonObject();
+        body.add("code", code);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        template.exchange(
+                String.format("/carts/%d/discounts", currentCartId),
+                HttpMethod.POST,
+                new HttpEntity<>(body.toString(), headers),
+                String.class
+        );
     }
 
     private Cart currentCart() {

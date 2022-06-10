@@ -82,10 +82,13 @@ public class Cart {
     }
 
     public double totalPrice() {
-        return BigDecimal
-                .valueOf(totalLinesPrice() - totalDiscountsPrice())
-                .setScale(2, RoundingMode.CEILING)
-                .doubleValue();
+        return Math.max(
+                0,
+                BigDecimal
+                        .valueOf(totalLinesPrice() - totalDiscountsPrice())
+                        .setScale(2, RoundingMode.CEILING)
+                        .doubleValue()
+        );
     }
 
     public Integer quantityOfProduct(String sku) {
@@ -95,5 +98,17 @@ public class Cart {
                 .findFirst()
                 .map(CartLine::getQuantity)
                 .orElse(0);
+    }
+
+    public boolean hasDiscount(String name) {
+        return discounts
+                .stream()
+                .anyMatch(line -> line.getName().equals(name));
+    }
+
+    public void applyDiscount(Discount discount) {
+        Assert.isTrue(!discounts.contains(discount), "Discount already applied");
+
+        discounts.add(discount);
     }
 }
